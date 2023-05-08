@@ -20,10 +20,9 @@ Only then it commits the change and then sends a response to followers saying th
 This is how the system comes to consensus and the process is called **Log Replication**
 
 ### Elections
-There are two timeout settings that control election.
 
-1. Election Timeout
-The time a follower has to wait before becoming a candidate.
+
+An election timeout controls the leader election, it is the time a follower has to wait before becoming a candidate.
 It's randomized between 150-300ms.
 
 On becoming a candidate it starts a new election term and votes for itself.
