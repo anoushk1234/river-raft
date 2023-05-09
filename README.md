@@ -73,3 +73,6 @@ Now let's imagine the partition is fixed. In this case Node A will see that the 
 Both Node A and B will rollback uncommited changes and replicate the leaders logs.
 
 We now have a consistent log.
+
+
+### Node Operation Cyle
