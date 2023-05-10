@@ -2,6 +2,9 @@ use indexmap::{self, IndexMap};
 
 use serde_derive::{Deserialize, Serialize};
 
+use crate::node::PACKET_SIZE;
+
+#[derive(Clone)]
 pub struct LogStore {
     /// index -> (term, value to be stored)
     pub entries: IndexMap<u64, Entry>,
@@ -29,7 +32,57 @@ pub enum Protocol {
     RequestVote(RequestVote),
     RespondVote(RespondVote),
     Ping(u64),
-    Pong(u64),
+    // Pong(u64),
+}
+impl Protocol {
+    pub fn heartbeat(socket: std::net::SocketAddr, term: u64, leader_id: u64) -> [u8; PACKET_SIZE] {
+        let p = Protocol::Ping(leader_id);
+        let mut buf = [0u8; PACKET_SIZE];
+        let message = bincode::serialize(&p).unwrap();
+        buf[..message.len()].copy_from_slice(&message);
+        buf
+    }
+    pub fn vote_request(term: u64, candidate_id: u64) -> [u8; PACKET_SIZE] {
+        let p = Protocol::RequestVote(RequestVote { term, candidate_id });
+        let mut buf = [0u8; PACKET_SIZE];
+        let message = bincode::serialize(&p).unwrap();
+        buf[..message.len()].copy_from_slice(&message);
+        buf
+    }
+    pub fn vote_response(term: u64, vote: bool) -> [u8; PACKET_SIZE] {
+        let p = Protocol::RespondVote(RespondVote { term, vote });
+        let mut buf = [0u8; PACKET_SIZE];
+        let message = bincode::serialize(&p).unwrap();
+        buf[..message.len()].copy_from_slice(&message);
+        buf
+    }
+    pub fn append_entry_request(term: u64, leader_id: u64, entry: Entry) -> [u8; PACKET_SIZE] {
+        let p = Protocol::AppendEntryRequest(AppendEntryRequest {
+            term,
+            leader_id,
+            entry,
+        });
+        let mut buf = [0u8; PACKET_SIZE];
+        let message = bincode::serialize(&p).unwrap();
+        buf[..message.len()].copy_from_slice(&message);
+        buf
+    }
+    pub fn append_entry_response(
+        socket: std::net::SocketAddr,
+        term: u64,
+        result: bool,
+        conflict: Option<Conflict>,
+    ) -> [u8; PACKET_SIZE] {
+        let p = Protocol::AppendEntryResponse(AppendEntryResponse {
+            term,
+            result,
+            conflict,
+        });
+        let mut buf = [0u8; PACKET_SIZE];
+        let message = bincode::serialize(&p).unwrap();
+        buf[..message.len()].copy_from_slice(&message);
+        buf
+    }
 }
 
 #[derive(Serialize, Deserialize)]
@@ -55,7 +108,7 @@ pub struct RespondVote {
     pub vote: bool,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct NodeInstance {
     pub ip: std::net::SocketAddr,
     pub id: u64,
@@ -64,12 +117,12 @@ pub struct NodeInstance {
 /// (term, value)
 pub type Entry = (Metadata, Data);
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub enum Data {
     NodeInstance(NodeInstance),
     Message(String),
 }
-#[derive(Default, Serialize, Deserialize)]
+#[derive(Default, Serialize, Deserialize, Clone)]
 pub struct Metadata {
     pub term: u64,
 }
