@@ -24,8 +24,19 @@ impl LogStore {
         });
         log_store
     }
+    pub fn get_peers(&self) -> Vec<&NodeInstance> {
+        self.entries
+            .values()
+            .into_iter()
+            .map(|d| match &d.1 {
+                Data::NodeInstance(n) => Some(n),
+                Data::Message(_) => None,
+            })
+            .flatten()
+            .collect::<Vec<&NodeInstance>>()
+    }
 }
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Protocol {
     AppendEntryRequest(AppendEntryRequest),
     AppendEntryResponse(AppendEntryResponse),
@@ -85,48 +96,50 @@ impl Protocol {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct AppendEntryRequest {
     pub leader_id: u64,
     pub term: u64,
     pub entry: Entry,
 }
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct AppendEntryResponse {
     pub term: u64,
     pub result: bool,
     pub conflict: Option<Conflict>,
 }
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct RequestVote {
     pub term: u64,
     pub candidate_id: u64,
 }
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct RespondVote {
     pub term: u64,
     pub vote: bool,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct NodeInstance {
-    pub ip: std::net::SocketAddr,
+    pub sender_ip: std::net::SocketAddr,
+    pub receiver_ip: std::net::SocketAddr,
     pub id: u64,
 }
 
 /// (term, value)
 pub type Entry = (Metadata, Data);
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum Data {
     NodeInstance(NodeInstance),
     Message(String),
 }
-#[derive(Default, Serialize, Deserialize, Clone)]
+
+#[derive(Default, Serialize, Deserialize, Clone, Debug)]
 pub struct Metadata {
     pub term: u64,
 }
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Conflict {
     TermConflict(u64), // confilicting term
     LogConflict(u64),  // conflicting index
